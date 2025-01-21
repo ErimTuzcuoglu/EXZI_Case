@@ -1,0 +1,10 @@
+version: '3'
+services:
+  backend:
+    environment:
+      REDIS_HOST: "redis"
+      REDIS_PORT: 6379
+    env_file:
+      - .env.${NODE_ENV}
+    ports:
+      - "${DEBUG_PORT}:${DEBUG_PORT}" # Debug port
