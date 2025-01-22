@@ -21,6 +21,8 @@ export default class WebSocketService {
 
       socket.on('subscribe-pair', ({pair}) => this.onSubscribeToPair(socket, pair));
       socket.on('unsubscribe-pair', ({pair}) => this.onUnsubscribeToPair(socket, pair));
+      socket.on('add-order', ({pair, order}) => this.onAddOrder(pair, order));
+      socket.on('cancel-order', ({pair, orderId}) => this.onCancelOrder(pair, orderId));
 
       socket.on('disconnect', () => this.onDisconnect(socket));
       socket.on('error', this.onError);
@@ -38,6 +40,14 @@ export default class WebSocketService {
     socket.leave(pair);
   };
 
+  onAddOrder = async (pair, order) => {
+    await this.orderBookService.addOrder(pair, order);
+  };
+
+  onCancelOrder = async (pair, orderId) => {
+    await this.orderBookService.cancelOrder(pair, orderId);
+  };
+
   onDisconnect = (socket) => {
     this.logger.info(`WebSocket connection closed: ${socket.id}`);
   };
@@ -48,7 +58,7 @@ export default class WebSocketService {
   /* #endregion */
 
   broadCastPairChanges = (pair, data) => {
-    this.io.to(pair).emit('orderbook_updates', data);
+    this.io.to(pair).emit('orderbook_updates', JSON.stringify(data));
   };
 
   subscribeRedisPairChanges = async () => {

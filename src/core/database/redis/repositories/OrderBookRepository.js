@@ -21,7 +21,7 @@ export default class OrderBookRepository {
 
   addOrder = async (pair, incomingOrder) => {
     const {amount, price, type} = incomingOrder;
-    const order = new Order({amount, pair, price, type});
+    const order = new Order({amount, price, type});
     const orderBook = await this.getOrderBook(pair);
     orderBook.addOrder(order);
 
@@ -29,7 +29,7 @@ export default class OrderBookRepository {
 
     await this.redisClient.set(`orderbook::${pair}`, orderBook.serialize());
 
-    await this.redisClient.publish(pair, {
+    await this.redisClient.publish(`orderbook::${pair}`, {
       type: OrderEvents.add_order,
       order: order,
       trades,
@@ -53,7 +53,7 @@ export default class OrderBookRepository {
 
     this.redisClient.set(`orderbook::${pair}`, orderBook.serialize());
 
-    await this.redisClient.publish(pair, {
+    await this.redisClient.publish(`orderbook::${pair}`, {
       type: OrderEvents.cancel_order,
       orderId,
     });

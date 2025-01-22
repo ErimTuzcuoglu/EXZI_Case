@@ -3,7 +3,7 @@ import appConfig from '@config/appConfig';
 import Logger from '@core/util/Logger';
 
 class RedisClient {
-  constructor(instanceName = 'defaultClient') {
+  constructor(autoConnect = false, instanceName = 'client') {
     if (!RedisClient.instance) {
       this.client = this.createNewInstance();
 
@@ -14,6 +14,10 @@ class RedisClient {
       this.client.on('error', (err) => {
         Logger.error(`Redis [${instanceName}] error:`, err);
       });
+
+      if(autoConnect) {
+        this.connect();
+      }
     }
   }
 
@@ -34,17 +38,12 @@ class RedisClient {
     return this.client.connect();
   };
 
-  exists = async (key) => {
-    return this.client.exists(key);
-  };
-
   get = async(key) => {
     return this.client.get(key);
   };
 
   publish = async(channel, message) => {
-    return this.client.publish(channel, JSON.stringify(message,
-    ));
+    return this.client.publish(channel, JSON.stringify(message));
   };
 
   quit = async() => {
@@ -57,36 +56,6 @@ class RedisClient {
 
   subscribe = async(channel, callback) => {
     return this.client.subscribe(channel, callback);
-  };
-
-  zAdd = async(key, score, value) => {
-    return this.client.zAdd(
-      key,
-      [{
-        score,
-        value: JSON.stringify(value),
-      }],
-    );
-  };
-
-  zRange = async(key, start, stop, withScores = false) => {
-    return this.client.sendCommand([
-      'ZRANGE',
-      key,
-      start.toString(),
-      stop.toString(),
-      (withScores ? 'WITHSCORES' : undefined),
-    ]);
-  };
-
-  zRevRange = async(key, start, stop, withScores = false) => {
-    return this.client.sendCommand([
-      'ZREVRANGE',
-      key,
-      start.toString(),
-      stop.toString(),
-      (withScores ? 'WITHSCORES' : undefined),
-    ]);
   };
 }
 

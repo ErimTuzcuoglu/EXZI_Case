@@ -8,6 +8,5 @@ export default {
     host: process.env.REDIS_HOST || 'redis',
     port: parseInt(process.env.REDIS_PORT) || 6379,
   },
-  swaggerDocsEnabled: Boolean(process.env.SWAGGER_DOCS_ENABLED),
   urlLoggingEnabled: Boolean(process.env.URL_LOGGING_ENABLED) || false,
 };

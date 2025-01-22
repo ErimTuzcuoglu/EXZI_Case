@@ -7,8 +7,8 @@ export default class OrderBookService {
     return this.repository.addOrder(pair, order);
   };
 
-  cancelOrder = async (orderId) => {
-    return this.repository.cancelOrder(orderId);
+  cancelOrder = async (pair, orderId) => {
+    return this.repository.cancelOrder(pair, orderId);
   };
 
   getOrderBook = async (pair) => {

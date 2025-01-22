@@ -16,8 +16,8 @@ async function startServer() {
 
   if (process.env.NODE_ENV !== 'test') {
     /* #region  Redis */
-    const redisClient = new RedisClient();
-    await redisClient.connect();
+    const redisSubscribeClient = new RedisClient(true, 'subscribeClient');
+    const redisClient = new RedisClient(true);
     await (new Seeder({
       redis: redisClient,
       logger: Logger,
@@ -25,14 +25,11 @@ async function startServer() {
     /* #endregion */
 
     /* #region  Socket */
-    const redisSubscribeClient = new RedisClient('PubSubClient');
-    await redisSubscribeClient.connect();
     const orderBookDBRepository = new OrderBookRepository({
       redisSubscribeClient,
       redisClient,
       logger: Logger,
     });
-
     const orderBookService = new OrderBookService(orderBookDBRepository);
 
     const socketIO = new WebSocketService(
@@ -43,7 +40,6 @@ async function startServer() {
     await socketIO.subscribeRedisPairChanges();
     /* #endregion */
 
-    const orders = await orderBookService.addOrder('BTC-USD', {amount: 1, price: 100, type: 'BUY'});
     /* #region  Server */
     server.listen(config.port, () => {
       Logger.log(`Server is listening on port ${config.port}`);

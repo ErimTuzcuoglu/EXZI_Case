@@ -7,24 +7,24 @@ export default class OrderBook {
     this.asks = asks || [];
   }
 
-  serialize() {
+  serialize = () => {
     return JSON.stringify({
       bids: this.bids,
       asks: this.asks,
     });
-  }
+  };
 
-  addOrder(order) {
-    if (order.type === OrderTypes.buy) {
+  addOrder = ({type, ...order}) => {
+    if (type === OrderTypes.buy) {
       this.bids.push(order);
       this.bids.sort((a, b) => b.price - a.price);
     } else {
       this.asks.push(order);
       this.asks.sort((a, b) => a.price - b.price);
     }
-  }
+  };
 
-  cancelOrder(orderId) {
+  cancelOrder = (orderId) => {
     const bidsCount = this.bids.length;
     const asksCount = this.asks.length;
     this.bids = this.bids.filter((order) => order.id !== orderId);
@@ -35,9 +35,9 @@ export default class OrderBook {
     }
 
     return false;
-  }
+  };
 
-  executeTrade() {
+  executeTrade = () => {
     const trades = [];
 
     while (this.bids.length > 0 && this.asks.length > 0) {
@@ -67,5 +67,5 @@ export default class OrderBook {
     }
 
     return trades.length > 0 ? trades : null;
-  }
+  };
 }
