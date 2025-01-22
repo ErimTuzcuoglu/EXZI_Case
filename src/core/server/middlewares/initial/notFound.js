@@ -1,8 +1,8 @@
 import CustomError from '@application/errors/CustomError';
 
 class NotFoundMiddleware {
-  handle = (req, res, next) => {
-    throw new CustomError(`Not Found - ${req.originalUrl}`, 404);
+  handle = (req) => {
+    throw new CustomError(`Not Found - ${req.url}`, 404);
   };
 }
 

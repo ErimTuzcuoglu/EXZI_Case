@@ -1,10 +1,9 @@
-import Logger from '@core/services/Logger';
+import Logger from '@core/util/Logger';
 
 class LoggingMiddleware {
-  handle = (req, res, next) => {
+  handle = (req) => {
     const {method, url} = req;
     Logger.info(`[${method}] ${url}`);
-    next();
   };
 }
 

@@ -1,7 +1,7 @@
-import Logger from '@core/services/Logger';
+import Logger from '@core/util/Logger';
 
 class ErrorHandlingMiddleware {
-  handle = (err, req, res) => {
+  handle = (err, res) => {
     Logger.error(`[${err.status}] [${err.stack}]`);
     res.customResult(err, err.status || 500, false);
   };

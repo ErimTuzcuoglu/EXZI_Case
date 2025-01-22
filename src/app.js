@@ -1,38 +1,56 @@
-import express from 'express';
+import {createServer} from 'http';
+import ServerConfig from '@core/server/config/server';
+import RedisClient from '@core/database/redis/redisClient';
+import Seeder from '@core/database/redis/seeder';
+import Logger from '@core/util/Logger';
 import config from '@config/appConfig';
-import ExpressConfig from '@core/server/config/express';
-import routes from '@core/server/routes/index';
-import Logger from '@core/services/Logger';
-// middlewares
-import errorHandlingMiddleware from '@core/server/middlewares/initial/errorHandlingMiddleware';
-import notFound from '@core/server/middlewares/initial/notFound';
-import loggingMiddleware from '@core/server/middlewares/initial/loggingMiddleware';
+import WebSocketService from '@core/socket/WebSocketService';
+import OrderBookService from '@application/services/OrderBookService';
+import OrderBookRepository from '@core/database/redis/repositories/OrderBookRepository';
 
 async function startServer() {
-  const app = express();
-  // express.js configuration (middlewares etc.)
-  (new ExpressConfig(app, config));
-
-  if (config.urlLoggingEnabled) {
-    app.use(loggingMiddleware);
-  }
-  // routes for each endpoint
-  app.use('/api', routes);
-
-  app.use(notFound);
-  // error handling middleware
-  // Important: Never remove next parameter even if it is not used.
-  // eslint-disable-next-line no-unused-vars
-  app.use((error, req, res, next) => {
-    errorHandlingMiddleware(error, req, res);
+  const server = createServer((req, res) => {
+    // middleware and routing logic
+    (new ServerConfig({req, res, config}));
   });
 
   if (process.env.NODE_ENV !== 'test') {
-    app.listen(config.port, () => {
+    /* #region  Redis */
+    const redisClient = new RedisClient();
+    await redisClient.connect();
+    await (new Seeder({
+      redis: redisClient,
+      logger: Logger,
+    })).seedBidsAndAsks();
+    /* #endregion */
+
+    /* #region  Socket */
+    const redisSubscribeClient = new RedisClient('PubSubClient');
+    await redisSubscribeClient.connect();
+    const orderBookDBRepository = new OrderBookRepository({
+      redisSubscribeClient,
+      redisClient,
+      logger: Logger,
+    });
+
+    const orderBookService = new OrderBookService(orderBookDBRepository);
+
+    const socketIO = new WebSocketService(
+      server,
+      Logger,
+      orderBookService,
+    );
+    await socketIO.subscribeRedisPairChanges();
+    /* #endregion */
+
+    const orders = await orderBookService.addOrder('BTC-USD', {amount: 1, price: 100, type: 'BUY'});
+    /* #region  Server */
+    server.listen(config.port, () => {
       Logger.log(`Server is listening on port ${config.port}`);
     });
+    /* #endregion */
   }
-  return app;
+  return server;
 }
 
 startServer().catch((error) => {

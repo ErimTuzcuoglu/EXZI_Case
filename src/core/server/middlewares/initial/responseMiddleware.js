@@ -14,7 +14,7 @@ class ResponseMiddleware {
     this.handle = this.handle.bind(this);
   }
 
-  handle(req, res, next) {
+  handle(res) {
     res.customResult = (body, statusCode = res.statusCode, isSuccess) => {
       const success = isSuccess ?? (statusCode < 400);
       const formattedResponse = {
@@ -27,9 +27,10 @@ class ResponseMiddleware {
           ? ''
           : (body?.message || this.messages[statusCode] || 'Unknown error'),
       };
-      return res.status(statusCode ?? 200).json(formattedResponse);
+      res.statusCode = statusCode ?? 200;
+      res.setHeader('Content-Type', 'application/json');
+      return res.end(JSON.stringify(formattedResponse));
     };
-    next();
   }
 }
 
