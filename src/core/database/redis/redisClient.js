@@ -1,9 +1,9 @@
-import {createClient} from 'redis';
+import Redis from 'ioredis';
 import appConfig from '@config/appConfig';
 import Logger from '@core/util/Logger';
 
 class RedisClient {
-  constructor(autoConnect = false, instanceName = 'client') {
+  constructor(instanceName = 'client') {
     if (!RedisClient.instance) {
       this.client = this.createNewInstance();
 
@@ -14,32 +14,22 @@ class RedisClient {
       this.client.on('error', (err) => {
         Logger.error(`Redis [${instanceName}] error:`, err);
       });
-
-      if(autoConnect) {
-        this.connect();
-      }
     }
   }
 
   createNewInstance() {
-    return createClient({
-      socket: {
-        host: appConfig.redis.host,
-        port: appConfig.redis.port,
-      },
-    });
+    return (new Redis({
+      host: appConfig.redis.host,
+      port: appConfig.redis.port,
+    }));
   }
-
-  get getClient() {
-    return this.client;
-  }
-
-  connect = async() => {
-    return this.client.connect();
-  };
 
   get = async(key) => {
     return this.client.get(key);
+  };
+
+  on = (event, callback) => {
+    this.client.on(event, callback);
   };
 
   publish = async(channel, message) => {

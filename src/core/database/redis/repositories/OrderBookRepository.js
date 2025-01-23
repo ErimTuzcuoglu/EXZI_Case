@@ -14,8 +14,13 @@ export default class OrderBookRepository {
   }
 
   subscribePairChanges = async (pair, callback) => {
-    await this.redisSubscribeClient.subscribe(`orderbook::${pair}`, (message) => {
-      callback(message);
+    await this.redisSubscribeClient.subscribe(`orderbook::${pair}`, (err, message) => {
+      if (err) this.logger.error(err.message);
+    });
+    await this.redisSubscribeClient.on('message', async (channel, message) => {
+      if (channel === `orderbook::${pair}`) {
+        callback(JSON.parse(message));
+      }
     });
   };
 

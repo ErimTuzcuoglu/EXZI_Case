@@ -65,7 +65,7 @@ export default class WebSocketService {
     const pairs = pairOrdersMockData.map(({pair}) => pair);
     for (const pair of pairs) {
       await this.orderBookService.subscribePairChanges(pair, (message) => {
-        this.broadCastPairChanges(pair, JSON.parse(message));
+        this.broadCastPairChanges(pair, message);
       });
     }
   };

@@ -1,23 +1,36 @@
-import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
-import app from '../../src/app';
-import supertest from 'supertest';
+import Redis from 'ioredis-mock';
+import OrderBookRepository from '@core/database/redis/repositories/OrderBookRepository';
+import OrderBookService from '@application/services/OrderBookService';
 
-let mongoServer;
-let request;
+jest.mock('ioredis', () => jest.requireActual('ioredis-mock'));
+
+let orderBookService;
+let redisClient;
+let redisSubscribeClient;
+let mockLogger = {
+  info: jest.fn(),
+  error: jest.fn(),
+};
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  const mongoUri = mongoServer.getUri();
+  redisClient = new Redis();
+  redisSubscribeClient = new Redis();
 
-  await mongoose.connect(mongoUri);
+  const orderBookRepository = new OrderBookRepository({
+    logger: mockLogger,
+    redisClient,
+    redisSubscribeClient,
+  });
+  orderBookService = new OrderBookService(orderBookRepository);
+});
 
-  request = supertest(app);
+beforeEach(() => {
+  redisClient.flushall();
 });
 
 afterAll(async () => {
-  await mongoose.disconnect();
-  await mongoServer.stop();
+  await redisClient.quit();
+  await redisSubscribeClient.quit();
 });
 
-export { request }; 
+export {orderBookService};

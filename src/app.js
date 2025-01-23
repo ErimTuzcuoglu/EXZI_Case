@@ -14,38 +14,36 @@ async function startServer() {
     (new ServerConfig({req, res, config}));
   });
 
-  if (process.env.NODE_ENV !== 'test') {
-    /* #region  Redis */
-    const redisSubscribeClient = new RedisClient(true, 'subscribeClient');
-    const redisClient = new RedisClient(true);
-    await (new Seeder({
-      redis: redisClient,
-      logger: Logger,
-    })).seedBidsAndAsks();
-    /* #endregion */
+  /* #region  Redis */
+  const redisSubscribeClient = new RedisClient('subscribeClient');
+  const redisClient = new RedisClient();
+  await (new Seeder({
+    redis: redisClient,
+    logger: Logger,
+  })).seedBidsAndAsks();
+  /* #endregion */
 
-    /* #region  Socket */
-    const orderBookDBRepository = new OrderBookRepository({
-      redisSubscribeClient,
-      redisClient,
-      logger: Logger,
-    });
-    const orderBookService = new OrderBookService(orderBookDBRepository);
+  /* #region  Socket */
+  const orderBookDBRepository = new OrderBookRepository({
+    redisSubscribeClient,
+    redisClient,
+    logger: Logger,
+  });
+  const orderBookService = new OrderBookService(orderBookDBRepository);
 
-    const socketIO = new WebSocketService(
-      server,
-      Logger,
-      orderBookService,
-    );
-    await socketIO.subscribeRedisPairChanges();
-    /* #endregion */
+  const socketIO = new WebSocketService(
+    server,
+    Logger,
+    orderBookService,
+  );
+  await socketIO.subscribeRedisPairChanges();
+  /* #endregion */
+  /* #region  Server */
+  server.listen(config.port, () => {
+    Logger.log(`Server is listening on port ${config.port}`);
+  });
+  /* #endregion */
 
-    /* #region  Server */
-    server.listen(config.port, () => {
-      Logger.log(`Server is listening on port ${config.port}`);
-    });
-    /* #endregion */
-  }
   return server;
 }
 
