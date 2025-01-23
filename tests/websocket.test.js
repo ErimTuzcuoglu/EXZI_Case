@@ -1,10 +1,14 @@
 import {createServer} from 'http';
-import {jest} from '@jest/globals';
+import {afterAll, beforeAll, beforeEach, jest, test} from '@jest/globals';
 import WebSocketService from '@core/socket/WebSocketService';
+
+jest.mock('../src/core/database/redis/mock-data/PairOrders', () => [
+  {pair: 'BTC-USD'},
+  {pair: 'ETH-USD'},
+]);
 
 describe('WebSocketService', () => {
   const redisSubscriptions = {};
-
   let httpServer, webSocketService, ioClient, mockLogger, mockOrderBookService;
 
   beforeAll((done) => {
@@ -27,6 +31,10 @@ describe('WebSocketService', () => {
       ioClient = require('socket.io-client')(`http://localhost:${port}`);
       done();
     });
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
   afterAll(() => {
@@ -90,10 +98,15 @@ describe('WebSocketService', () => {
     }, 100);
   });
 
-  test('Broadcast sends message to the correct room', async (done) => {
+  test('Broadcast sends message to the correct room', async () => {
     const pair = 'BTC-USD';
     const data = {bids: [{price: 50000, quantity: 1}], asks: []};
     await webSocketService.subscribeRedisPairChanges();
+
+    ioClient.emit('subscribe-pair', {pair});
+    // Wait for the client to join the room
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    expect(webSocketService.io.sockets.adapter.rooms.has(pair)).toBe(true);
 
     const callback = mockOrderBookService
       .subscribePairChanges
@@ -102,11 +115,14 @@ describe('WebSocketService', () => {
       .find(([subscribedPair]) => subscribedPair === pair)[1];
     callback(data);
 
-    ioClient.on('orderbook_updates', (message) => {
-      expect(JSON.parse(message)).toEqual(data);
-      done();
+    const orderBookMessage = new Promise((resolve) => {
+      ioClient.on('orderbook_updates', (message) => {
+        resolve(message);
+      });
     });
-    ioClient.emit('subscribe-pair', {pair});
+
+    const message = await orderBookMessage;
+    expect(JSON.parse(message)).toEqual(data);
   });
 
   test('subscribeRedisPairChanges subscribes to pair changes', async () => {
@@ -114,7 +130,6 @@ describe('WebSocketService', () => {
       {pair: 'BTC-USD'},
       {pair: 'ETH-USD'},
     ];
-    jest.mock('../src/core/database/redis/mock-data/PairOrders', () => mockPairOrders);
     await webSocketService.subscribeRedisPairChanges();
     expect(mockOrderBookService.subscribePairChanges).toHaveBeenCalledTimes(mockPairOrders.length);
     mockPairOrders.forEach(({pair}) => {

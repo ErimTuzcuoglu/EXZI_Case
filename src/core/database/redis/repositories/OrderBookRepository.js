@@ -14,6 +14,7 @@ export default class OrderBookRepository {
   }
 
   subscribePairChanges = async (pair, callback) => {
+    // eslint-disable-next-line no-unused-vars
     await this.redisSubscribeClient.subscribe(`orderbook::${pair}`, (err, message) => {
       if (err) this.logger.error(err.message);
     });
